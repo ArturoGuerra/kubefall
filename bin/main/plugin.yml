@@ -1,0 +1,4 @@
+name: kubefall
+main: kubefall.Kubefall
+version: 1.0
+author: Arturo Guerra
