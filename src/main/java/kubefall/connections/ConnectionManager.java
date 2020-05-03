@@ -23,7 +23,6 @@ public class ConnectionManager implements ReconnectHandler {
 
     @Override
     public ServerInfo getServer(ProxiedPlayer proxiedPlayer) {
-        logger.info("Doing stuff to get the players server");
         ServerInfo serverInfo = null;
 
         if (proxiedPlayer.getPendingConnection().getVirtualHost().getHostName() != null) {
@@ -34,12 +33,8 @@ public class ConnectionManager implements ReconnectHandler {
             serverInfo = this.proxyServer.getServerInfo(this.sessions.getReconnectServer(proxiedPlayer.getUniqueId()));
         }
 
-        if (serverInfo == null) {
-            serverInfo = this.config.getDefaultServer();
-        }
-
         if (serverInfo != null) {
-            logger.info(serverInfo.toString());
+            serverInfo = this.config.getDefaultServer();
         }
 
         return serverInfo;
