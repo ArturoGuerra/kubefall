@@ -77,6 +77,7 @@ public class KubernetesListener {
                     }
                 });
             } catch (Throwable e) {
+                logger.info(String.format("Error while watching: %s", e.getMessage()));
                 try {
                     Thread.sleep(1000*5);
                 } catch (InterruptedException error) {

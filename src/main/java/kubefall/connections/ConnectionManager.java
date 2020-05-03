@@ -25,6 +25,8 @@ public class ConnectionManager implements ReconnectHandler {
     public ServerInfo getServer(ProxiedPlayer proxiedPlayer) {
         ServerInfo serverInfo = null;
 
+        this.logger.info(String.format("Getting server for: %s", proxiedPlayer.getPendingConnection().getVirtualHost().getHostName()));
+
         if (proxiedPlayer.getPendingConnection().getVirtualHost().getHostName() != null) {
             serverInfo = this.proxyServer.getServerInfo(this.config.getForcedHost(proxiedPlayer.getPendingConnection().getVirtualHost().getHostName()));
         }

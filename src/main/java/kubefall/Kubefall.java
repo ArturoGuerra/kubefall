@@ -34,7 +34,7 @@ public class Kubefall extends Plugin {
         try {
            new KubernetesListener(config, proxyserver, logger);
         } catch (IOException | ApiException e) {
-            logger.info(e.getMessage());
+            logger.info(String.format("Error while loading KubernetesListener: %s", e.getMessage()));
         }
     }
 
