@@ -32,7 +32,8 @@ public class KubernetesListener {
     private CoreV1Api api;
     private ApiClient kclient;
     private Watch<V1Service> watch;
-    final private String namespace = "minecraft";
+    final private String namespace = (System.getenv("KUBE_NAMESPACE") != null) ? System.getenv("KUBE_NAMESPACE") : "minecraft";
+    final private String defaultName = (System.getenv("DEFAULT_LOBBY") != null) ? System.getenv("DEFAULT_LOBBY") : "lobby";
     private ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     public KubernetesListener(kubefall.config.Config config, ProxyServer proxyServer, Logger logger) throws IOException, ApiException {
@@ -62,7 +63,10 @@ public class KubernetesListener {
                 watch.forEach(service -> {
                     switch(service.type) {
                         case "ADDED":
-                            addServer(service.object);
+                            addServer(service.type, service.object);
+                            break;
+                        case "MODIFIED":
+                            addServer(service.type, service.object);
                             break;
                         case "REMOVED":
                             removeServer(service.object);
@@ -82,10 +86,11 @@ public class KubernetesListener {
         }
     }
 
-    private void addServer(V1Service service) {
+    private void addServer(String event, V1Service service) {
         Map<String, String> annotations = service.getMetadata().getAnnotations();
         if (annotations != null) {
             if ((annotations.get("io.ar2ro.kubefall/enabled") != null) ? annotations.get("io.ar2ro.kubefall/enabled").contentEquals("true") : false) {
+                Integer port = 25565;
                 final String externalHost = annotations.get("io.ar2ro.kubefall/host");
                 final String name = service.getMetadata().getName();
                 final String serviceNamespace = service.getMetadata().getNamespace();
@@ -93,7 +98,6 @@ public class KubernetesListener {
                 final String motd = (annotations.get("io.ar2ro.kubefall/motd") != null ) ? annotations.get("io.ar2ro.kubefall/motd") : config.getMotd();
                 final Boolean defaultServer = (annotations.get("io.ar2ro.kubefall/defaultServer") != null) ? annotations.get("io.ar2ro.kubefall/defaultServer").contentEquals("true") : false;
                 final Boolean restricted = (annotations.get("io.ar2ro.kubefall/restricted") != null) ? annotations.get("io.ar2ro.kubefall/restricted").contentEquals("true") : false;
-                Integer port = 25565;
                 
                 for (V1ServicePort servicePort : service.getSpec().getPorts()) {
                     if (servicePort.getName() == "minecraft") {
@@ -106,6 +110,7 @@ public class KubernetesListener {
 
                 if (defaultServer) {
                     config.setDefaultServer(server);
+                    proxyServer.getServers().put(defaultName, server);
                 }
 
                 if (externalHost != null) {
@@ -113,7 +118,14 @@ public class KubernetesListener {
                 }
 
                 proxyServer.getServers().put(name, server);
-                logger.info(String.format("Event: ADDED Service: %s ExternalHost: %s Default: %b Motd: %s ProxyDNS: %s", name, externalHost, defaultServer, motd, address.getHostString()));
+                logger.info(String.format(
+                    "Event: %s Service: %s ExternalHost: %s Default: %b Motd: %s ProxyDNS: %s",
+                    event,
+                    name,
+                    externalHost,
+                    defaultServer,
+                    motd,
+                    address.getHostString()));
             }
 
         }
@@ -122,12 +134,22 @@ public class KubernetesListener {
     private void removeServer(V1Service service) {
         final String name = service.getMetadata().getName();
         final Map<String, String> annotations = service.getMetadata().getAnnotations();
+        String externalHost = "";
+        Boolean defaultServer = false;
 
         if (annotations != null) {
-            String externalHost = annotations.get("io.ar2ro.kubefall/host");
-            if (externalHost != null) config.removeForcedHost(annotations.get("io.ar2ro.kubefall/host"));
+            defaultServer = (annotations.get("io.ar2ro.kubafall/defaultServer") != null) ? annotations.get("io.ar2ro.kubefall/defaultServer").contentEquals("true") : false;
+            externalHost = annotations.get("io.ar2ro.kubefall/host");
+            if (externalHost != null) config.removeForcedHost(externalHost);
         }
 
         proxyServer.getServers().remove(name);
+
+        logger.info(String.format(
+            "Event: REMOVED Service: %s ExternalHost: %s Default: %b",
+            name,
+            externalHost != null ? externalHost : "",
+            defaultServer
+        ));
     }
 }
