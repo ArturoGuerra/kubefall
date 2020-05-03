@@ -52,11 +52,9 @@ public class ConnectionManager implements ReconnectHandler {
 
     @Override
     public void save() {
-        this.logger.info("Saving lol nvm we don't do that here");
     }
 
     @Override
     public void close() {
-        this.logger.info("Closing nvm we don't do that here lol");
     }
 }
